@@ -1,0 +1,41 @@
+= digital ocean utils
+
+this util use digitalocean's api to apply some basic operation:
+
+1. droplet: list/create/delete
+2. vm: reboot/poweron/poweroff/powercycle
+
+== Usage
+
+- config file should be present in working directory:
+
+	src/config.toml
+
+- script for userdata generation with option `-op add -usedata auto`:
+
+	tool/01_gen_userdata.sh
+
+- generic operation
++
+----
+# config file and script tool is relative to the working dir
+cd src
+
+# build binary: do_utils
+go build
+
+# list droplet
+./do_utils -op ls
+
+# create droplet abc.01 with file as userdata
+./do_utils -name abc.01 -op add -userdata '$path_to_userdata_file'
+
+# create droplet abc.01 with generated userdata
+./do_utils -name abc.01 -op add -userdata auto
+
+# destroy droplet: abc.01
+./do_utils -name abc.01 -op del
+
+# reboot droplet: abc.01
+./do_utils -name abc.01 -op reboot
+----

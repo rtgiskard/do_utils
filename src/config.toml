@@ -1,0 +1,15 @@
+[auth]
+token = ''
+
+[droplet]
+name = 'abc'						# name of the droplet
+os = 'Fedora'						# images distro (auto select the latest version)
+key = 'ssh_keyname'					# name of the ssh key for droplet auth (create by yourself)
+size = 's-1vcpu-512mb-10gb'			# droplet size slug
+region = ['nyc1', 'sfo1', 'nyc2']	# regions slug: try in sequence
+
+# args reference: https://slugs.do-api.dev/
+
+[listoption]
+page = 1
+perpage = 200
