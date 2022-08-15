@@ -1,15 +1,36 @@
-[auth]
-token = ''
+[zerotier]
+token = 'wwrb66uUh18Fqc38rd8jMd5RFJzRsCn4'	# an example token
+url = 'https://api.zerotier.com/api/v1'
+timeout = 10  # in seconds, for http operation
 
-[droplet]
-name = 'abc'						# name of the droplet
-os = 'Fedora'						# images distro (auto select the latest version)
-key = 'ssh_keyname'					# name of the ssh key for droplet auth (create by yourself)
-size = 's-1vcpu-512mb-10gb'			# droplet size slug
-region = ['nyc1', 'sfo1', 'nyc2']	# regions slug: try in sequence
+  [zerotier.net.config]
+  name = 'net_01'
+  private = true
+  EnableBroadcast = true
+  V4AssignMode.zt = true
 
-# args reference: https://slugs.do-api.dev/
+    [[zerotier.net.config.routes]]
+    target = "10.10.10.0/24"
 
-[listoption]
-page = 1
-perpage = 200
+    [[zerotier.net.config.ipassignmentpools]]
+    iprangestart = '10.10.10.1'
+    iprangeend = '10.10.10.101'
+
+  [zerotier.netm]
+  hidden = false
+  config.authorized = true
+
+[digitalocean]
+token = 'dop_v1_hc4npebcvuns2sondbqulmdbkruceb5yrpfozduz0crnjoghsc8jrr06ezhb36a3' # an example token
+
+  [digitalocean.droplet]
+  # args reference: https://slugs.do-api.dev/
+  name = 'abc'						# name of the droplet
+  os = 'Fedora'						# images distro (auto select the latest version)
+  key = 'ssh_keyname'				# name of the ssh key for droplet auth (create by yourself)
+  size = 's-1vcpu-512mb-10gb'		# droplet size slug for droplet creation
+  region = ['nyc1', 'sfo1', 'nyc2']	# regions slug: try in sequence
+
+  [digitalocean.listoption]
+  page = 1
+  perpage = 200

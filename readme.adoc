@@ -1,41 +1,62 @@
-= digital ocean utils
+= my personal network utils
 
-this util use digitalocean's api to apply some basic operation:
+this util currently support some of the basic operation with the api of
+`digitalocean` and `zerotier`:
 
-1. droplet: list/create/delete
-2. vm: reboot/poweron/poweroff/powercycle
+- digitalocean
+. list/create/delete
+. reboot/poweron/poweroff/powercycle
 
-== Usage
+- zerotier
+. get account info
+. network: list/create/delete/config
+. network member: list/delete/config
 
-- config file should be present in working directory:
 
-	src/config.toml
+== Config file
 
-- script for userdata generation with option `-op add -usedata auto`:
+make sure `config.toml` is present in current working directory or it will not run
 
-	tool/01_gen_userdata.sh
+the config file provide some neccessary info and default settings for operation, some of
+which can be override with commandline arguments, refer the `./net_utils -h` for details
 
-- generic operation
-+
+
+== Examples
 ----
 # config file and script tool is relative to the working dir
 cd src
 
-# build binary: do_utils
+# build binary: net_utils
 go build
 
-# list droplet
-./do_utils -op ls
+# check default config
+./net_utils info
 
-# create droplet abc.01 with file as userdata
-./do_utils -name abc.01 -op add -userdata '$path_to_userdata_file'
+# zerotier: account info
+./net_utils zt info
 
-# create droplet abc.01 with generated userdata
-./do_utils -name abc.01 -op add -userdata auto
+# zerotier: add network
+./net_utils zt net_add
 
-# destroy droplet: abc.01
-./do_utils -name abc.01 -op del
+# zerotier: list network members
+./net_utils zt netm_ls --nid "$NETWORK_ID_FROM_net_ls"
 
-# reboot droplet: abc.01
-./do_utils -name abc.01 -op reboot
+# zerotier: set network member ip and name
+./net_utils zt netm_set --nid "NETWORK_ID_FROM_net_ls" --mid "MEMBER_ID_FROM_netm_ls" --ip 10.10.10.2 --name node_02
+
+# digitalocean: list droplet
+./net_utils do ls
+
+# digitalocean: create droplet abc.01 with file as userdata
+./net_utils do add -name abc.01 -userdata '$path_to_userdata_file'
+
+# digitalocean: create droplet abc.01 with generated userdata (the generator script should
+# be present in the path relative to current working dir: `../tool/01_gen_userdata.sh`)
+./net_utils do add -name abc.01 -userdata gen
+
+# digitalocean: destroy droplet: abc.01
+./net_utils do rm -name abc.01
+
+# digitalocean: reboot droplet: abc.01
+./net_utils do reboot -name abc.01
 ----

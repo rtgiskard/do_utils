@@ -1,13 +1,16 @@
-module do_utils
+module net_utils
 
 go 1.18
 
 require (
+	github.com/alexflint/go-arg v1.4.3
 	github.com/digitalocean/godo v1.81.0
 	github.com/pelletier/go-toml v1.9.5
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
+	github.com/alexflint/go-scalar v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/stretchr/testify v1.7.2 // indirect
