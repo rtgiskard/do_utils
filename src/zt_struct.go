@@ -136,8 +136,13 @@ func (i *ZtNetMemberInfo) show() {
 	lastOnline := time.Unix(i.LastOnline/1000, 0)
 	lastduration := time.Since(lastOnline).Truncate(time.Second)
 
+	ip_assigned := "-"
+	if len(i.Config.IPAssignments) > 0 {
+		ip_assigned = i.Config.IPAssignments[0]
+	}
+
 	fmt.Printf("%-12s %-14s %-18s %-18s %-10s %-12s %-7t %t\n",
-		i.NodeID, i.Name, i.Config.IPAssignments[0], i.PhysicalAddress,
+		i.NodeID, i.Name, ip_assigned, i.PhysicalAddress,
 		i.ClientVersion, lastduration, i.Config.Authorized, i.Hidden)
 }
 
