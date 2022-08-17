@@ -159,14 +159,18 @@ func zt_network_create() {
 	zt_req(http.MethodPost, "/network", &obj, &body)
 
 	if nid, ok := obj["id"]; ok {
-		if value, ok := nid.(string); ok {
-			obj := ZtNetInfo{}
-			body := config.Zerotier.Net
-			zt_req(http.MethodPost, "/network/"+value, &obj, &body)
-
-			fmt.Println(dumps(obj, args.Format))
+		if v, ok := nid.(string); ok {
+			zt_network_set(v)
 		}
 	}
+}
+
+func zt_network_set(nid string) {
+	obj := ZtNetInfo{}
+	body := config.Zerotier.Net
+	zt_req(http.MethodPost, "/network/"+nid, &obj, &body)
+
+	fmt.Println(dumps(obj, args.Format))
 }
 
 func zt_network_del(nid string) {
@@ -180,10 +184,21 @@ func zt_network_del(nid string) {
 }
 
 func zt_network_member_list(nid string) {
-	obj := make([]ZtNetMemberInfo, 0)
-	zt_req(http.MethodGet, "/network/"+nid+"/member", &obj, nil)
+	if nid == "" {
+		obj := make([]ZtNetInfo, 0)
+		zt_req(http.MethodGet, "/network", &obj, nil)
 
-	display_network_members(obj)
+		for i := range obj {
+			zt_network_member_list(obj[i].ID)
+		}
+	} else {
+		obj := make([]ZtNetMemberInfo, 0)
+		zt_req(http.MethodGet, "/network/"+nid+"/member", &obj, nil)
+
+		fmt.Printf("-- net: %s\n", nid)
+		display_network_members(obj)
+		fmt.Println("")
+	}
 }
 
 func zt_network_member_set(nid string, mid string) {

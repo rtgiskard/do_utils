@@ -19,7 +19,7 @@ type DoCmd struct {
 }
 
 type ZtCmd struct {
-	Op      string `arg:"positional,required" help:"info|net_ls|net_add|net_rm|netm_ls|netm_set|netm_rm"`
+	Op      string `arg:"positional,required" help:"info|net_ls|net_add|net_set|net_rm|netm_ls|netm_set|netm_rm"`
 	Uid     string `arg:"--uid" help:"user id"`
 	Nid     string `arg:"--nid" placeholder:"ID" help:"network id"`
 	Mid     string `arg:"--mid" placeholder:"ID" help:"network member id"`
@@ -73,7 +73,7 @@ func sync_args_zt() bool {
 	}
 
 	switch args.Zt.Op {
-	case "net_rm", "netm_ls":
+	case "net_set", "net_rm":
 		if args.Zt.Nid == "" {
 			fmt.Println("** network id not specified!")
 			return false
@@ -83,14 +83,14 @@ func sync_args_zt() bool {
 			fmt.Println("** network id or member id not specified!")
 			return false
 		}
+	}
 
-		// sync netm_set args
-		if args.Zt.Name != "" {
-			config.Zerotier.Netm.Name = args.Zt.Name
-		}
-	case "net_add":
-		if args.Zt.Name != "" {
+	if args.Zt.Name != "" {
+		switch args.Zt.Op {
+		case "net_set", "net_add":
 			config.Zerotier.Net.Config.Name = args.Zt.Name
+		case "netm_set", "netm_rm":
+			config.Zerotier.Netm.Name = args.Zt.Name
 		}
 	}
 

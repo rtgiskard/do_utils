@@ -23,6 +23,8 @@ func main() {
 			zt_network_list()
 		case "net_add":
 			zt_network_create()
+		case "net_set":
+			zt_network_set(args.Zt.Nid)
 		case "net_rm":
 			zt_network_del(args.Zt.Nid)
 		case "netm_ls":

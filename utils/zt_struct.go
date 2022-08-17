@@ -118,13 +118,21 @@ type ZtNetMemberInfo struct {
 }
 
 func (i ZtNetInfo) show_header() {
-	fmt.Printf("%-18s %-16s %-10s %-10s %s\n", "NID", "Name", "Private", "O/T/A", "CreationTime")
+	fmt.Printf("%-18s %-16s %-18s %-10s %-10s %s\n",
+		"NID", "Name", "Route", "Private", "O/T/A", "CreationTime")
 }
 
 func (i *ZtNetInfo) show() {
 	createTime := time.Unix(i.Config.CreationTime/1000, 0).Local().Format(time.RFC3339)
 	ota := fmt.Sprintf("%d/%d/%d", i.OnlineMemberCount, i.TotalMemberCount, i.AuthorizedMemberCount)
-	fmt.Printf("%-18s %-16s %-10t %-10s %s\n", i.ID, i.Config.Name, i.Config.Private, ota, createTime)
+
+	route := "-"
+	if len(i.Config.Routes) > 0 {
+		route = i.Config.Routes[0].Target
+	}
+
+	fmt.Printf("%-18s %-16s %-18s %-10t %-10s %s\n",
+		i.ID, i.Config.Name, route, i.Config.Private, ota, createTime)
 }
 
 func (i ZtNetMemberInfo) show_header() {
@@ -148,6 +156,7 @@ func (i *ZtNetMemberInfo) show() {
 
 func display_networks(networks []ZtNetInfo) {
 	if len(networks) == 0 {
+		fmt.Println("<empty>")
 		return
 	}
 
@@ -161,14 +170,15 @@ func display_networks(networks []ZtNetInfo) {
 		ZtNetInfo{}.show_header()
 
 		// show brief info
-		for _, net := range networks {
-			net.show()
+		for i := range networks {
+			networks[i].show()
 		}
 	}
 }
 
 func display_network_members(members []ZtNetMemberInfo) {
 	if len(members) == 0 {
+		fmt.Println("<empty>")
 		return
 	}
 
@@ -182,8 +192,8 @@ func display_network_members(members []ZtNetMemberInfo) {
 		ZtNetMemberInfo{}.show_header()
 
 		// show brief info
-		for _, m := range members {
-			m.show()
+		for i := range members {
+			members[i].show()
 		}
 	}
 }
