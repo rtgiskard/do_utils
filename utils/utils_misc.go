@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
+	"strings"
 
 	"encoding/json"
 
@@ -10,13 +12,69 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func InSlice[T comparable](slice []T, elem interface{}) bool {
-	for _, v := range slice {
-		if elem == v {
+func InSlice[T comparable](s []T, e interface{}) bool {
+	for _, v := range s {
+		if e == v {
 			return true
 		}
 	}
 	return false
+}
+
+func GetStrSet(n int) string {
+	str_set := []string{
+		"0123456789",
+		"abcdefghijklmnopqrstuvwxyz",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+	}
+
+	if n < 0 {
+		n = 0
+	} else if n > len(str_set) {
+		n = len(str_set)
+	}
+
+	return strings.Join(str_set[:n], "")
+}
+
+func ReprBitsLen(num uint64) int {
+	for i := 1; ; i++ {
+		num >>= 1
+
+		if num == 0 {
+			return i
+		}
+	}
+}
+
+func GenRandStr[T string | int](n int, s T) string {
+
+	// reseed should be performed
+	// rand.Seed(time.Now().UnixNano())
+
+	var ss string
+
+	// get source set of characters
+	var i interface{} = s
+	if v, ok := i.(string); ok {
+		ss = v
+	} else if v, ok := i.(int); ok {
+		ss = GetStrSet(v)
+	}
+
+	// check length
+	if len(ss) == 0 || n == 0 {
+		return ""
+	}
+
+	// rand select
+	sb := strings.Builder{}
+	sb.Grow(n)
+	for i := 0; i < n; i++ {
+		sb.WriteByte(ss[rand.Intn(len(ss))])
+	}
+	return sb.String()
 }
 
 func ReadFile(path string, size int) ([]byte, int) {
