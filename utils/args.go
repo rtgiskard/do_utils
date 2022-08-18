@@ -1,76 +1,118 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"time"
-
-	"github.com/alexflint/go-arg"
 )
 
 type doCmd struct {
 	Op       string `arg:"positional,required" help:"ls|add|rm|reboot|poweron|poweroff|powercycle"`
 	Name     string `arg:"--name" help:"name of the droplet to operate"`
 	Size     string `arg:"--size" help:"size of the new droplet"`
-	Userdata string `arg:"--userdata" default:"none" help:"create with userdata: [none|gen|$file]"`
+	Userdata string `arg:"--userdata" default:"none" help:"source of userdata: [none|gen|$file]"`
+	Helper   string `arg:"--helper" default:"../tool/01_gen_userdata.sh" help:"helper to generate userdata"`
 	Token    string `arg:"--token" help:"set the api token"`
 }
 
 type ztCmd struct {
 	Op      string `arg:"positional,required" help:"info|net_ls|net_add|net_set|net_rm|netm_ls|netm_set|netm_rm"`
-	Uid     string `arg:"--uid" help:"user id"`
-	Nid     string `arg:"--nid" placeholder:"ID" help:"network id"`
-	Mid     string `arg:"--mid" placeholder:"ID" help:"network member id"`
+	UID     string `arg:"--uid" help:"user id"`
+	NID     string `arg:"--nid" placeholder:"ID" help:"network id"`
+	MID     string `arg:"--mid" placeholder:"ID" help:"network member id"`
 	Token   string `arg:"--token" help:"specify the api token"`
 	Name    string `arg:"--name" help:"name to be set"`
-	Ip      string `arg:"--ip" help:"set ip for the node"`
+	IP      string `arg:"--ip" help:"set ip for the node"`
 	Timeout int    `arg:"--timeout" default:"10" help:"http timeout in seconds"`
 }
 
 type infoCmd struct{}
 
 var args struct {
-	Do      *doCmd   `arg:"subcommand:do" help:"digitalocean utils"`
-	Zt      *ztCmd   `arg:"subcommand:zt" help:"zerotier utils"`
-	Info    *infoCmd `arg:"subcommand:info" help:"dump config info"`
-	Noop    bool     `arg:"-n,--dry-run" help:"no action"`
-	Format  string   `arg:"-f,--fmt" default:"toml" help:"output format: yaml|toml|json"`
-	Verbose bool     `arg:"-v,--verbose" defalt:"false" help:"show verbose info"`
+	Do         *doCmd   `arg:"subcommand:digitalocean" help:"operate with digitalocean api"`
+	Zt         *ztCmd   `arg:"subcommand:zerotier" help:"operate with zerotier api"`
+	Info       *infoCmd `arg:"subcommand:info" help:"dump config info"`
+	Noop       bool     `arg:"-n,--dry-run" help:"no action"`
+	ConfigFile string   `arg:"-c,--" default:"config.toml" help:"path of config file"`
+	Format     string   `arg:"-f,--fmt" default:"toml" help:"output format: yaml|toml|json"`
+	Verbose    bool     `arg:"-v,--verbose" defalt:"false" help:"show verbose info"`
 }
 
-func parse_args() {
-	p := arg.MustParse(&args)
-	sync_ret := true
+func runZerotierCmd() {
 
-	config.load(config_file)
+	c := ZtClient{
+		token:   config.Zerotier.Token,
+		baseURL: config.Zerotier.URL,
+		timeout: config.Zerotier.Timeout,
+		fmt:     args.Format,
+	}
 
-	switch {
-	case args.Info != nil:
-	case args.Zt != nil:
-		sync_ret = sync_args_zt()
-	case args.Do != nil:
-		sync_ret = sync_args_do()
+	c.Init()
+
+	if args.Noop {
+		switch args.Zt.Op {
+		case "net_add", "net_set":
+			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Net, args.Format))
+			return
+		case "netm_set":
+			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Netm, args.Format))
+			return
+		}
+	}
+
+	switch args.Zt.Op {
+	case "info":
+		c.DumpUserRecord()
+	case "net_ls":
+		c.ListNetwork()
+	case "net_add":
+		c.CreateNetwork(config.Zerotier.Net)
+	case "net_set":
+		c.SetNetwork(args.Zt.NID, config.Zerotier.Net)
+	case "net_rm":
+		c.DelNetwork(args.Zt.NID)
+	case "netm_ls":
+		c.ListNetworkMember(args.Zt.NID)
+	case "netm_set":
+		c.SetNetworkMember(args.Zt.NID, args.Zt.MID, config.Zerotier.Netm)
+	case "netm_rm":
+		c.DelNetworkMember(args.Zt.NID, args.Zt.MID)
 	default:
-		p.WriteHelp(os.Stdout)
-	}
-
-	if !sync_ret {
-		os.Exit(1)
+		fmt.Println("** Undefined operation:", args.Zt.Op)
 	}
 }
 
-func sync_args_zt() bool {
+func runDigitaloceanCmd() {
+	c := DoClient{
+		args: &config.DigitalOcean,
+	}
+
+	c.Init()
+
+	switch args.Do.Op {
+	case "ls":
+		c.ListDroplet()
+	case "add":
+		c.CreateDroplet(args.Noop)
+	case "rm":
+		c.DestroyDroplet(c.args.Droplet.Name)
+	case "reboot", "poweron", "poweroff", "powercycle":
+		c.DropletAction(args.Do.Op)
+	default:
+		fmt.Println("** Undefined operation:", args.Do.Op)
+	}
+}
+
+func syncArgsZt() bool {
 	if args.Zt.Token != "" {
 		config.Zerotier.Token = args.Zt.Token
 	}
-	if args.Zt.Uid != "" {
-		config.Zerotier.UID = args.Zt.Uid
+	if args.Zt.UID != "" {
+		config.Zerotier.UID = args.Zt.UID
 	}
-	if args.Zt.Ip != "" {
-		config.Zerotier.Netm.Config.IPAssignments = []string{args.Zt.Ip}
+	if args.Zt.IP != "" {
+		config.Zerotier.Netm.Config.IPAssignments = []string{args.Zt.IP}
 	}
 	if args.Zt.Timeout > 0 {
 		config.Zerotier.Timeout = time.Duration(args.Zt.Timeout) * time.Second
@@ -78,12 +120,12 @@ func sync_args_zt() bool {
 
 	switch args.Zt.Op {
 	case "net_set", "net_rm":
-		if args.Zt.Nid == "" {
+		if args.Zt.NID == "" {
 			fmt.Println("** network id not specified!")
 			return false
 		}
 	case "netm_set", "netm_rm":
-		if args.Zt.Nid == "" || args.Zt.Mid == "" {
+		if args.Zt.NID == "" || args.Zt.MID == "" {
 			fmt.Println("** network id or member id not specified!")
 			return false
 		}
@@ -101,7 +143,7 @@ func sync_args_zt() bool {
 	return true
 }
 
-func sync_args_do() bool {
+func syncArgsDo() bool {
 	if args.Do.Token != "" {
 		config.DigitalOcean.Token = args.Do.Token
 	}
@@ -119,7 +161,7 @@ func sync_args_do() bool {
 	case "none": // disable userdata
 		config.DigitalOcean.Droplet.UserData = ""
 	case "gen": // generate userdata
-		out, err := exec.Command(userdata_generator).Output()
+		out, err := exec.Command(args.Do.Helper).Output()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -130,29 +172,4 @@ func sync_args_do() bool {
 	}
 
 	return true
-}
-
-func parse_args_with_flag() {
-	// note only
-
-	var operation string
-	var name string
-	var size string
-	var userdata string
-	var noop bool
-
-	flag.StringVar(&operation, "op", "", "valid: [ls|add|rm|reboot|poweron|poweroff|powercycle]")
-	flag.StringVar(&name, "name", "", "name of the droplet")
-	flag.StringVar(&size, "size", "", "size of the droplet")
-	flag.StringVar(&userdata, "userdata", "", "create droplet with userdata: [''|auto|file_to_read]")
-	flag.BoolVar(&noop, "noop", false, "no real operation for droplet creation")
-
-	flag.Parse()
-
-	if operation == "" {
-		CommandLine := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-		fmt.Fprintf(CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
 }

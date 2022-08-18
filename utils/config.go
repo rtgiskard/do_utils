@@ -10,7 +10,7 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-type C_ZT struct {
+type cZT struct {
 	Token   string
 	UID     string        `yaml:",omitempty"`
 	URL     string        `yaml:",omitempty"`
@@ -19,7 +19,7 @@ type C_ZT struct {
 	Netm    ZtNetMemberPost
 }
 
-type C_DO struct {
+type cDO struct {
 	Token string
 
 	Droplet struct {
@@ -35,12 +35,12 @@ type C_DO struct {
 	ListOption godo.ListOptions
 }
 
-type Config struct {
-	Zerotier     C_ZT
-	DigitalOcean C_DO
+type utilsConfig struct {
+	Zerotier     cZT
+	DigitalOcean cDO
 }
 
-func (c *Config) load(path string) {
+func (c *utilsConfig) load(path string) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
@@ -55,6 +55,6 @@ func (c *Config) load(path string) {
 	c.Zerotier.Timeout *= time.Second
 }
 
-func (c *Config) show(format string) {
+func (c *utilsConfig) show(format string) {
 	fmt.Println(dumps(c, format))
 }

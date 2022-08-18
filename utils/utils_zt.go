@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func read_resp_body(resp *http.Response) []byte {
+func readRespBody(resp *http.Response) []byte {
 	if resp.StatusCode != 200 {
 		fmt.Println("status:", resp.Status)
 		return nil
@@ -101,7 +101,7 @@ func (c *ZtClient) DoRequest(method, path string, body, data interface{}) (*http
 		defer resp.Body.Close()
 	}
 
-	payload := read_resp_body(resp)
+	payload := readRespBody(resp)
 	if data != nil {
 		err := json.Unmarshal(payload, &data)
 		if err != nil {
@@ -157,7 +157,7 @@ func (c *ZtClient) ListNetwork() {
 	data := make([]ZtNetInfo, 0)
 	c.DoRequest(http.MethodGet, "/network", nil, &data)
 
-	display_networks(data)
+	displayNetworks(data)
 }
 
 func (c *ZtClient) CreateNetwork(conf ZtNetPost) {
@@ -200,7 +200,7 @@ func (c *ZtClient) ListNetworkMember(nid string) {
 		c.DoRequest(http.MethodGet, path, nil, &data)
 
 		fmt.Printf("-- net: %s\n", nid)
-		display_network_members(data)
+		displayNetworkMembers(data)
 		fmt.Println("")
 	}
 }

@@ -117,7 +117,7 @@ type ZtNetMemberInfo struct {
 	} `json:"config,omitempty"`
 }
 
-func (i ZtNetInfo) show_header() {
+func (i ZtNetInfo) showHeader() {
 	fmt.Printf("%-18s %-16s %-18s %-10s %-10s %s\n",
 		"NID", "Name", "Route", "Private", "O/T/A", "CreationTime")
 }
@@ -135,7 +135,7 @@ func (i *ZtNetInfo) show() {
 		i.ID, i.Config.Name, route, i.Config.Private, ota, createTime)
 }
 
-func (i ZtNetMemberInfo) show_header() {
+func (i ZtNetMemberInfo) showHeader() {
 	fmt.Printf("%-12s %-14s %-18s %-18s %-10s %-12s %-7s %s\n",
 		"MID", "Name", "IP_assign", "IP_physical", "Version", "LastOnline", "Auth", "Hidden")
 }
@@ -144,17 +144,17 @@ func (i *ZtNetMemberInfo) show() {
 	lastOnline := time.Unix(i.LastOnline/1000, 0)
 	lastduration := time.Since(lastOnline).Truncate(time.Second)
 
-	ip_assigned := "-"
+	ipAssigned := "-"
 	if len(i.Config.IPAssignments) > 0 {
-		ip_assigned = i.Config.IPAssignments[0]
+		ipAssigned = i.Config.IPAssignments[0]
 	}
 
 	fmt.Printf("%-12s %-14s %-18s %-18s %-10s %-12s %-7t %t\n",
-		i.NodeID, i.Name, ip_assigned, i.PhysicalAddress,
+		i.NodeID, i.Name, ipAssigned, i.PhysicalAddress,
 		i.ClientVersion, lastduration, i.Config.Authorized, i.Hidden)
 }
 
-func display_networks(networks []ZtNetInfo) {
+func displayNetworks(networks []ZtNetInfo) {
 	if len(networks) == 0 {
 		fmt.Println("<empty>")
 		return
@@ -167,7 +167,7 @@ func display_networks(networks []ZtNetInfo) {
 		}
 	} else {
 		// show header
-		ZtNetInfo{}.show_header()
+		ZtNetInfo{}.showHeader()
 
 		// show brief info
 		for i := range networks {
@@ -176,7 +176,7 @@ func display_networks(networks []ZtNetInfo) {
 	}
 }
 
-func display_network_members(members []ZtNetMemberInfo) {
+func displayNetworkMembers(members []ZtNetMemberInfo) {
 	if len(members) == 0 {
 		fmt.Println("<empty>")
 		return
@@ -189,7 +189,7 @@ func display_network_members(members []ZtNetMemberInfo) {
 		}
 	} else {
 		// show header
-		ZtNetMemberInfo{}.show_header()
+		ZtNetMemberInfo{}.showHeader()
 
 		// show brief info
 		for i := range members {

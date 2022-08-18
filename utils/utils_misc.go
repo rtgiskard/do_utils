@@ -22,7 +22,7 @@ func InSlice[T comparable](s []T, e interface{}) bool {
 }
 
 func GetStrSet(n int) string {
-	str_set := []string{
+	strSet := []string{
 		"0123456789",
 		"abcdefghijklmnopqrstuvwxyz",
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -31,11 +31,11 @@ func GetStrSet(n int) string {
 
 	if n < 0 {
 		n = 0
-	} else if n > len(str_set) {
-		n = len(str_set)
+	} else if n > len(strSet) {
+		n = len(strSet)
 	}
 
-	return strings.Join(str_set[:n], "")
+	return strings.Join(strSet[:n], "")
 }
 
 func ReprBitsLen(num uint64) int {

@@ -9,12 +9,19 @@ import (
 	"github.com/digitalocean/godo"
 )
 
-func do_get_client(token string) (context.Context, *godo.Client) {
-	return context.TODO(), godo.NewFromToken(token)
+type DoClient struct {
+	client *godo.Client
+	ctx    context.Context
+	args   *cDO
 }
 
-func do_ssh_key_get_fp(ctx context.Context, client *godo.Client, keyname string) string {
-	keys, _, err := client.Keys.List(ctx, &config.DigitalOcean.ListOption)
+func (c *DoClient) Init() {
+	c.client = godo.NewFromToken(c.args.Token)
+	c.ctx = context.TODO()
+}
+
+func (c *DoClient) GetSSHKeyFp(keyname string) string {
+	keys, _, err := c.client.Keys.List(c.ctx, &c.args.ListOption)
 
 	if err != nil {
 		log.Fatal(err)
@@ -29,15 +36,16 @@ func do_ssh_key_get_fp(ctx context.Context, client *godo.Client, keyname string)
 	return ""
 }
 
-func do_datacenter_region_get(ctx context.Context, client *godo.Client) string {
-	regions, _, _ := client.Regions.List(ctx, &config.DigitalOcean.ListOption)
+func (c *DoClient) GetDropletRegion() string {
+	regions, _, _ := c.client.Regions.List(c.ctx, &c.args.ListOption)
 
 	for _, region := range regions {
 		if !region.Available {
 			continue
 		}
 
-		if InSlice(config.DigitalOcean.Droplet.Region, region.Slug) && InSlice(region.Sizes, config.DigitalOcean.Droplet.Size) {
+		if InSlice(c.args.Droplet.Region, region.Slug) &&
+			InSlice(region.Sizes, c.args.Droplet.Size) {
 			return region.Slug
 		}
 	}
@@ -45,48 +53,47 @@ func do_datacenter_region_get(ctx context.Context, client *godo.Client) string {
 	return ""
 }
 
-func do_droplet_image_get(ctx context.Context, client *godo.Client) string {
-	images, _, _ := client.Images.List(ctx, &config.DigitalOcean.ListOption)
+func (c *DoClient) GetDropletImage() string {
+	images, _, _ := c.client.Images.List(c.ctx, &c.args.ListOption)
 
-	images_slice := make([]string, 0, 2)
+	slugs := make([]string, 0, 2)
 
 	for _, image := range images {
-		if image.Distribution == config.DigitalOcean.Droplet.OS {
-			images_slice = append(images_slice, image.Slug)
+		if image.Distribution == c.args.Droplet.OS {
+			slugs = append(slugs, image.Slug)
 		}
 	}
 
 	// select the lastest version
-	sort.Strings(images_slice)
+	sort.Strings(slugs)
 
-	last_index := len(images_slice) - 1
-	if last_index >= 0 {
-		return images_slice[last_index]
+	if len(slugs) > 0 {
+		return slugs[len(slugs)-1]
 	}
 
 	return ""
 }
 
-func do_droplet_action(ctx context.Context, client *godo.Client, action string) {
-	id := do_droplet_get_id(ctx, client, config.DigitalOcean.Droplet.Name)
+func (c *DoClient) DropletAction(action string) {
+	id := c.GetDropletID(c.args.Droplet.Name)
 	if id == 0 {
 		log.Fatal("failed to get droplet id")
 		return
 	}
 
-	action_map := map[string]func(context.Context, int) (*godo.Action, *godo.Response, error){
-		"reboot":     client.DropletActions.Reboot,
-		"poweron":    client.DropletActions.PowerOn,
-		"poweroff":   client.DropletActions.PowerOff,
-		"powercycle": client.DropletActions.PowerCycle,
+	actionMap := map[string]func(context.Context, int) (*godo.Action, *godo.Response, error){
+		"reboot":     c.client.DropletActions.Reboot,
+		"poweron":    c.client.DropletActions.PowerOn,
+		"poweroff":   c.client.DropletActions.PowerOff,
+		"powercycle": c.client.DropletActions.PowerCycle,
 	}
 
-	fmt.Printf("-> droplet action: %s %s\n", action, config.DigitalOcean.Droplet.Name)
-	action_map[action](ctx, id)
+	fmt.Printf("-> droplet action: %s %s\n", action, c.args.Droplet.Name)
+	actionMap[action](c.ctx, id)
 }
 
-func do_droplet_get_id(ctx context.Context, client *godo.Client, name string) int {
-	droplets, _, _ := client.Droplets.List(ctx, &config.DigitalOcean.ListOption)
+func (c *DoClient) GetDropletID(name string) int {
+	droplets, _, _ := c.client.Droplets.List(c.ctx, &c.args.ListOption)
 
 	for _, droplet := range droplets {
 		if droplet.Name == name {
@@ -96,8 +103,8 @@ func do_droplet_get_id(ctx context.Context, client *godo.Client, name string) in
 	return 0
 }
 
-func do_droplet_ls(ctx context.Context, client *godo.Client) {
-	droplets, _, _ := client.Droplets.List(ctx, &config.DigitalOcean.ListOption)
+func (c *DoClient) ListDroplet() {
+	droplets, _, _ := c.client.Droplets.List(c.ctx, &c.args.ListOption)
 
 	fmt.Println("-> list droplet:")
 	for _, droplet := range droplets {
@@ -121,78 +128,78 @@ func do_droplet_ls(ctx context.Context, client *godo.Client) {
 	}
 }
 
-func do_droplet_create(ctx context.Context, client *godo.Client) {
-	ch_region := make(chan string)
-	ch_image := make(chan string)
-	ch_key := make(chan string)
-	ch_id := make(chan int)
+func (c *DoClient) CreateDroplet(noop bool) {
+	chRegion := make(chan string)
+	chImage := make(chan string)
+	chKey := make(chan string)
+	chID := make(chan int)
 
 	go func() {
-		ch_id <- do_droplet_get_id(ctx, client, config.DigitalOcean.Droplet.Name)
+		chID <- c.GetDropletID(c.args.Droplet.Name)
 	}()
 
 	go func() {
-		ch_region <- do_datacenter_region_get(ctx, client)
+		chRegion <- c.GetDropletRegion()
 	}()
 
 	go func() {
-		ch_image <- do_droplet_image_get(ctx, client)
+		chImage <- c.GetDropletImage()
 	}()
 
 	go func() {
-		ch_key <- do_ssh_key_get_fp(ctx, client, config.DigitalOcean.Droplet.Key)
+		chKey <- c.GetSSHKeyFp(c.args.Droplet.Key)
 	}()
 
 	// abort if droplet exist
-	if <-ch_id != 0 {
-		fmt.Printf("Abort on existing droplet: %s\n", config.DigitalOcean.Droplet.Name)
+	if <-chID != 0 {
+		fmt.Printf("Abort on existing droplet: %s\n", c.args.Droplet.Name)
 		return
 	}
 
-	// verify: region, image, ssh_key
+	// verify: region, image, sshKey
 
-	region := <-ch_region
+	region := <-chRegion
 	if region == "" {
-		fmt.Printf("Invalid region: %s\n", config.DigitalOcean.Droplet.Region)
+		fmt.Printf("Invalid region: %s\n", c.args.Droplet.Region)
 		return
 	}
 
 	var image godo.DropletCreateImage
-	if image_slug := <-ch_image; image_slug != "" {
-		image = godo.DropletCreateImage{Slug: image_slug}
+	if slug := <-chImage; slug != "" {
+		image = godo.DropletCreateImage{Slug: slug}
 	} else {
-		fmt.Printf("Invalid OS: %s\n", config.DigitalOcean.Droplet.OS)
+		fmt.Printf("Invalid OS: %s\n", c.args.Droplet.OS)
 		return
 	}
 
-	var ssh_key []godo.DropletCreateSSHKey
-	if ssh_key_fp := <-ch_key; ssh_key_fp != "" {
-		ssh_key = []godo.DropletCreateSSHKey{{Fingerprint: ssh_key_fp}}
+	var sshKey []godo.DropletCreateSSHKey
+	if sshKeyFp := <-chKey; sshKeyFp != "" {
+		sshKey = []godo.DropletCreateSSHKey{{Fingerprint: sshKeyFp}}
 	} else {
-		fmt.Printf("Invalid ssh key: %s\n", config.DigitalOcean.Droplet.Key)
+		fmt.Printf("Invalid ssh key: %s\n", c.args.Droplet.Key)
 		return
 	}
 
 	createRequest := &godo.DropletCreateRequest{
-		Name:     config.DigitalOcean.Droplet.Name,
-		Size:     config.DigitalOcean.Droplet.Size,
+		Name:     c.args.Droplet.Name,
+		Size:     c.args.Droplet.Size,
 		Region:   region,
 		Image:    image,
-		SSHKeys:  ssh_key,
+		SSHKeys:  sshKey,
 		Backups:  false,
 		IPv6:     true,
-		Tags:     []string{config.DigitalOcean.Droplet.Name},
-		UserData: config.DigitalOcean.Droplet.UserData,
+		Tags:     []string{c.args.Droplet.Name},
+		UserData: c.args.Droplet.UserData,
 	}
 
 	fmt.Printf("-> create droplet:\n--\n%s\n", dumps(createRequest, "toml"))
 
-	if !args.Noop {
-		client.Droplets.Create(ctx, createRequest)
+	if !noop {
+		c.client.Droplets.Create(c.ctx, createRequest)
 	}
 }
 
-func do_droplet_rm(ctx context.Context, client *godo.Client) {
-	fmt.Println("-> delete droplet:", config.DigitalOcean.Droplet.Name)
-	client.Droplets.DeleteByTag(ctx, config.DigitalOcean.Droplet.Name)
+func (c *DoClient) DestroyDroplet(name string) {
+	fmt.Println("-> delete droplet:", name)
+	c.client.Droplets.DeleteByTag(c.ctx, name)
 }
