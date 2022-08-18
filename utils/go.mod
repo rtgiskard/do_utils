@@ -6,14 +6,16 @@ require (
 	github.com/alexflint/go-arg v1.4.3
 	github.com/digitalocean/godo v1.81.0
 	github.com/pelletier/go-toml v1.9.5
+	github.com/stretchr/testify v1.7.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/alexflint/go-scalar v1.1.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/stretchr/testify v1.7.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

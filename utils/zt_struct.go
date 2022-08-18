@@ -165,9 +165,9 @@ func displayNetworks(networks []ZtNetInfo) {
 	}
 
 	if args.Verbose {
-		for i, net := range networks {
-			fmt.Printf("-- net %d: %s\n", i, net.ID)
-			fmt.Println(Dumps(net, args.Format))
+		for i, v := range networks {
+			fmt.Printf("-- net %d: %s\n", i, v.ID)
+			fmt.Println(Dumps(v, args.Format))
 		}
 	} else {
 		// show header
@@ -187,9 +187,9 @@ func displayNetworkMembers(members []ZtNetMemberInfo) {
 	}
 
 	if args.Verbose {
-		for i, m := range members {
-			fmt.Printf("-- netm %d: %s\n", i, m.NodeID)
-			fmt.Println(Dumps(m, args.Format))
+		for i, v := range members {
+			fmt.Printf("-- netm %d: %s\n", i, v.NodeID)
+			fmt.Println(Dumps(v, args.Format))
 		}
 	} else {
 		// show header
@@ -199,5 +199,16 @@ func displayNetworkMembers(members []ZtNetMemberInfo) {
 		for i := range members {
 			members[i].show()
 		}
+	}
+}
+
+func ztDisplay(o interface{}) {
+	switch v := o.(type) {
+	case []ZtNetInfo:
+		displayNetworks(v)
+	case []ZtNetMemberInfo:
+		displayNetworkMembers(v)
+	default:
+		fmt.Println(Dumps(v, args.Format))
 	}
 }

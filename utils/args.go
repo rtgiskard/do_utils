@@ -29,7 +29,7 @@ type ztCmd struct {
 
 type infoCmd struct{}
 
-var args struct {
+type mainArgs struct {
 	Do         *doCmd   `arg:"subcommand:digitalocean" help:"operate with digitalocean api"`
 	Zt         *ztCmd   `arg:"subcommand:zerotier" help:"operate with zerotier api"`
 	Info       *infoCmd `arg:"subcommand:info" help:"dump config info"`
@@ -45,7 +45,7 @@ func runZerotierCmd() {
 		token:   config.Zerotier.Token,
 		baseURL: config.Zerotier.URL,
 		timeout: config.Zerotier.Timeout,
-		fmt:     args.Format,
+		display: ztDisplay,
 	}
 
 	c.Init()

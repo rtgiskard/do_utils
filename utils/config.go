@@ -35,12 +35,12 @@ type cDO struct {
 	ListOption godo.ListOptions
 }
 
-type utilsConfig struct {
+type mainConfig struct {
 	Zerotier     cZT
 	DigitalOcean cDO
 }
 
-func (c *utilsConfig) load(path string) {
+func (c *mainConfig) load(path string) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
@@ -55,6 +55,6 @@ func (c *utilsConfig) load(path string) {
 	c.Zerotier.Timeout *= time.Second
 }
 
-func (c *utilsConfig) show(format string) {
+func (c *mainConfig) show(format string) {
 	fmt.Println(Dumps(c, format))
 }

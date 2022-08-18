@@ -6,12 +6,12 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
-var config = utilsConfig{}
+var args = mainArgs{}
+var config = mainConfig{}
 
 func main() {
 	p := arg.MustParse(&args)
 
-	// load config after parse but before sync
 	config.load(args.ConfigFile)
 
 	switch {
