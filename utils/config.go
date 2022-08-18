@@ -56,5 +56,5 @@ func (c *utilsConfig) load(path string) {
 }
 
 func (c *utilsConfig) show(format string) {
-	fmt.Println(dumps(c, format))
+	fmt.Println(Dumps(c, format))
 }

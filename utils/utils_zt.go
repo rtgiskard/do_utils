@@ -26,6 +26,7 @@ func readRespBody(resp *http.Response) []byte {
 	return data
 }
 
+// ZtClient is a wrapper of general operation for zerotier
 type ZtClient struct {
 	client  *http.Client
 	timeout time.Duration
@@ -35,6 +36,7 @@ type ZtClient struct {
 	fmt     string
 }
 
+// Init setup the backend http client and init the members
 func (c *ZtClient) Init() {
 	if c.fmt == "" {
 		c.fmt = "toml"
@@ -48,6 +50,7 @@ func (c *ZtClient) Init() {
 	c.baseURL = strings.TrimSuffix(c.baseURL, "/")
 }
 
+// NewRequest assemble http request with token and possible payload
 func (c *ZtClient) NewRequest(method, path string, body interface{}) (*http.Request, error) {
 	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
@@ -82,6 +85,7 @@ func (c *ZtClient) NewRequest(method, path string, body interface{}) (*http.Requ
 	return req, nil
 }
 
+// DoRequest send http request and parse the response
 func (c *ZtClient) DoRequest(method, path string, body, data interface{}) (*http.Response, error) {
 	// request
 	req, err := c.NewRequest(method, path, body)
@@ -112,6 +116,7 @@ func (c *ZtClient) DoRequest(method, path string, body, data interface{}) (*http
 	return resp, err
 }
 
+// GetUIDHack get uid bind to the token by create a immediate network
 func (c *ZtClient) GetUIDHack() string {
 	// get uid by create a tmp network
 	body := make(map[string]interface{})
@@ -135,6 +140,7 @@ func (c *ZtClient) GetUIDHack() string {
 	return ""
 }
 
+// DumpUserRecord dumps user record info identified by the token
 func (c *ZtClient) DumpUserRecord() {
 	// get uid if not specified
 	if c.uid == "" {
@@ -150,9 +156,10 @@ func (c *ZtClient) DumpUserRecord() {
 	data := make(map[string]interface{})
 	c.DoRequest(http.MethodGet, "/user/"+c.uid, nil, &data)
 
-	fmt.Println(dumps(data, c.fmt))
+	fmt.Println(Dumps(data, c.fmt))
 }
 
+// ListNetwork list all managed networks
 func (c *ZtClient) ListNetwork() {
 	data := make([]ZtNetInfo, 0)
 	c.DoRequest(http.MethodGet, "/network", nil, &data)
@@ -160,6 +167,7 @@ func (c *ZtClient) ListNetwork() {
 	displayNetworks(data)
 }
 
+// CreateNetwork create new network and apply the the settings
 func (c *ZtClient) CreateNetwork(conf ZtNetPost) {
 	body := make(map[string]interface{})
 	data := make(map[string]interface{})
@@ -172,13 +180,15 @@ func (c *ZtClient) CreateNetwork(conf ZtNetPost) {
 	}
 }
 
+// SetNetwork apply new setting to existing network identified by nid
 func (c *ZtClient) SetNetwork(nid string, conf ZtNetPost) {
 	data := ZtNetInfo{}
 	c.DoRequest(http.MethodPost, "/network/"+nid, &conf, &data)
 
-	fmt.Println(dumps(data, c.fmt))
+	fmt.Println(Dumps(data, c.fmt))
 }
 
+// DelNetwork delete a network and print the response status
 func (c *ZtClient) DelNetwork(nid string) {
 	resp, err := c.DoRequest(http.MethodDelete, "/network/"+nid, nil, nil)
 	if err == nil && resp.StatusCode == 200 {
@@ -186,6 +196,7 @@ func (c *ZtClient) DelNetwork(nid string) {
 	}
 }
 
+// ListNetworkMember list members of a/all network
 func (c *ZtClient) ListNetworkMember(nid string) {
 	if nid == "" {
 		data := make([]ZtNetInfo, 0)
@@ -205,15 +216,17 @@ func (c *ZtClient) ListNetworkMember(nid string) {
 	}
 }
 
+// SetNetworkMember apply settings like name and ip to the network member
 func (c *ZtClient) SetNetworkMember(nid string, mid string, conf ZtNetMemberPost) {
 	path := "/network/" + nid + "/member/" + mid
 	data := ZtNetMemberInfo{}
 
 	c.DoRequest(http.MethodPost, path, &conf, &data)
 
-	fmt.Println(dumps(data, c.fmt))
+	fmt.Println(Dumps(data, c.fmt))
 }
 
+// DelNetworkMember delete member of a network and print the response status
 func (c *ZtClient) DelNetworkMember(nid string, mid string) {
 	path := "/network/" + nid + "/member/" + mid
 	resp, err := c.DoRequest(http.MethodDelete, path, nil, nil)

@@ -53,10 +53,10 @@ func runZerotierCmd() {
 	if args.Noop {
 		switch args.Zt.Op {
 		case "net_add", "net_set":
-			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Net, args.Format))
+			fmt.Printf(">> post args:\n%s\n", Dumps(config.Zerotier.Net, args.Format))
 			return
 		case "netm_set":
-			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Netm, args.Format))
+			fmt.Printf(">> post args:\n%s\n", Dumps(config.Zerotier.Netm, args.Format))
 			return
 		}
 	}

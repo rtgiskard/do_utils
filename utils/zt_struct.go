@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ZtNetPost is simplified struct for network settings
 type ZtNetPost struct {
 	Description string `json:"description,omitempty"`
 	Config      struct {
@@ -36,6 +37,7 @@ type ZtNetPost struct {
 	} `json:"config,omitempty"`
 }
 
+// ZtNetInfo is the generated struct to hold returned network information
 type ZtNetInfo struct {
 	ID          string `json:"id,omitempty"`
 	Description string `json:"description,omitempty"`
@@ -81,6 +83,7 @@ type ZtNetInfo struct {
 	TotalMemberCount      int    `json:"totalMemberCount,omitempty"`
 }
 
+// ZtNetMemberPost is simplified struct for network member settings
 type ZtNetMemberPost struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
@@ -94,6 +97,7 @@ type ZtNetMemberPost struct {
 	} `json:"config,omitempty"`
 }
 
+// ZtNetMemberInfo is the generated struct to hold returned network member information
 type ZtNetMemberInfo struct {
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
@@ -163,7 +167,7 @@ func displayNetworks(networks []ZtNetInfo) {
 	if args.Verbose {
 		for i, net := range networks {
 			fmt.Printf("-- net %d: %s\n", i, net.ID)
-			fmt.Println(dumps(net, args.Format))
+			fmt.Println(Dumps(net, args.Format))
 		}
 	} else {
 		// show header
@@ -185,7 +189,7 @@ func displayNetworkMembers(members []ZtNetMemberInfo) {
 	if args.Verbose {
 		for i, m := range members {
 			fmt.Printf("-- netm %d: %s\n", i, m.NodeID)
-			fmt.Println(dumps(m, args.Format))
+			fmt.Println(Dumps(m, args.Format))
 		}
 	} else {
 		// show header

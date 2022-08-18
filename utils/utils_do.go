@@ -9,17 +9,20 @@ import (
 	"github.com/digitalocean/godo"
 )
 
+// DoClient is a wrapper of general operation for digitalocean
 type DoClient struct {
 	client *godo.Client
 	ctx    context.Context
 	args   *cDO
 }
 
+// Init setup the backend client and context
 func (c *DoClient) Init() {
 	c.client = godo.NewFromToken(c.args.Token)
 	c.ctx = context.TODO()
 }
 
+// GetSSHKeyFp returns fingerprint for the sshkey
 func (c *DoClient) GetSSHKeyFp(keyname string) string {
 	keys, _, err := c.client.Keys.List(c.ctx, &c.args.ListOption)
 
@@ -36,6 +39,7 @@ func (c *DoClient) GetSSHKeyFp(keyname string) string {
 	return ""
 }
 
+// GetDropletRegion returns the prefered available region which match the args
 func (c *DoClient) GetDropletRegion() string {
 	regions, _, _ := c.client.Regions.List(c.ctx, &c.args.ListOption)
 
@@ -53,13 +57,14 @@ func (c *DoClient) GetDropletRegion() string {
 	return ""
 }
 
-func (c *DoClient) GetDropletImage() string {
+// GetDropletImage returns the slug name for the distro of latest version
+func (c *DoClient) GetDropletImage(distro string) string {
 	images, _, _ := c.client.Images.List(c.ctx, &c.args.ListOption)
 
 	slugs := make([]string, 0, 2)
 
 	for _, image := range images {
-		if image.Distribution == c.args.Droplet.OS {
+		if image.Distribution == distro {
 			slugs = append(slugs, image.Slug)
 		}
 	}
@@ -74,6 +79,7 @@ func (c *DoClient) GetDropletImage() string {
 	return ""
 }
 
+// DropletAction perform the basic droplet action like reboot and poweroff
 func (c *DoClient) DropletAction(action string) {
 	id := c.GetDropletID(c.args.Droplet.Name)
 	if id == 0 {
@@ -92,6 +98,7 @@ func (c *DoClient) DropletAction(action string) {
 	actionMap[action](c.ctx, id)
 }
 
+// GetDropletID returns id of the named droplet
 func (c *DoClient) GetDropletID(name string) int {
 	droplets, _, _ := c.client.Droplets.List(c.ctx, &c.args.ListOption)
 
@@ -103,6 +110,7 @@ func (c *DoClient) GetDropletID(name string) int {
 	return 0
 }
 
+// ListDroplet list all existing droplet
 func (c *DoClient) ListDroplet() {
 	droplets, _, _ := c.client.Droplets.List(c.ctx, &c.args.ListOption)
 
@@ -128,6 +136,7 @@ func (c *DoClient) ListDroplet() {
 	}
 }
 
+// CreateDroplet create new droplet and apply the settings
 func (c *DoClient) CreateDroplet(noop bool) {
 	chRegion := make(chan string)
 	chImage := make(chan string)
@@ -143,7 +152,7 @@ func (c *DoClient) CreateDroplet(noop bool) {
 	}()
 
 	go func() {
-		chImage <- c.GetDropletImage()
+		chImage <- c.GetDropletImage(c.args.Droplet.OS)
 	}()
 
 	go func() {
@@ -192,13 +201,14 @@ func (c *DoClient) CreateDroplet(noop bool) {
 		UserData: c.args.Droplet.UserData,
 	}
 
-	fmt.Printf("-> create droplet:\n--\n%s\n", dumps(createRequest, "toml"))
+	fmt.Printf("-> create droplet:\n--\n%s\n", Dumps(createRequest, "toml"))
 
 	if !noop {
 		c.client.Droplets.Create(c.ctx, createRequest)
 	}
 }
 
+// DestroyDroplet destroy droplet by the pre set tag which equals the name
 func (c *DoClient) DestroyDroplet(name string) {
 	fmt.Println("-> delete droplet:", name)
 	c.client.Droplets.DeleteByTag(c.ctx, name)

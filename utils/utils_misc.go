@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// InSlice check whether a element is in the given slice
 func InSlice[T comparable](s []T, e interface{}) bool {
 	for _, v := range s {
 		if e == v {
@@ -21,6 +22,18 @@ func InSlice[T comparable](s []T, e interface{}) bool {
 	return false
 }
 
+// ReprBitsLen returns the minimum bit length to represent an uint64 number
+func ReprBitsLen(num uint64) int {
+	for i := 1; ; i++ {
+		num >>= 1
+
+		if num == 0 {
+			return i
+		}
+	}
+}
+
+// GetStrSet returns ascii char set as a string
 func GetStrSet(n int) string {
 	strSet := []string{
 		"0123456789",
@@ -38,16 +51,8 @@ func GetStrSet(n int) string {
 	return strings.Join(strSet[:n], "")
 }
 
-func ReprBitsLen(num uint64) int {
-	for i := 1; ; i++ {
-		num >>= 1
-
-		if num == 0 {
-			return i
-		}
-	}
-}
-
+// GenRandStr generate random string in length n with characters from the
+// given set represented by s
 func GenRandStr[T string | int](n int, s T) string {
 
 	// reseed should be performed
@@ -77,7 +82,8 @@ func GenRandStr[T string | int](n int, s T) string {
 	return sb.String()
 }
 
-func ReadFile(path string, size int) ([]byte, int) {
+// ReadFile reads up to n bytes from given path
+func ReadFile(path string, n int) ([]byte, int) {
 	file, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -85,26 +91,27 @@ func ReadFile(path string, size int) ([]byte, int) {
 
 	defer file.Close()
 
-	buf := make([]byte, size)
-	n, err := file.Read(buf)
+	buf := make([]byte, n)
+	nread, err := file.Read(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return buf, n
+	return buf, nread
 }
 
-func dumps(o interface{}, format string) string {
+// Dumps dump object to string for the given format: toml|yaml|json
+func Dumps(o interface{}, format string) string {
 	var b []byte
 	var err error
 
 	switch format {
+	case "toml":
+		b, err = toml.Marshal(o)
 	case "yaml":
 		b, err = yaml.Marshal(o)
 	case "json":
 		b, err = json.MarshalIndent(o, "", "\t")
-	case "toml":
-		b, err = toml.Marshal(o)
 	default:
 		return ""
 	}
