@@ -6,11 +6,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/alexflint/go-arg"
 )
 
-type DoCmd struct {
+type doCmd struct {
 	Op       string `arg:"positional,required" help:"ls|add|rm|reboot|poweron|poweroff|powercycle"`
 	Name     string `arg:"--name" help:"name of the droplet to operate"`
 	Size     string `arg:"--size" help:"size of the new droplet"`
@@ -18,7 +19,7 @@ type DoCmd struct {
 	Token    string `arg:"--token" help:"set the api token"`
 }
 
-type ZtCmd struct {
+type ztCmd struct {
 	Op      string `arg:"positional,required" help:"info|net_ls|net_add|net_set|net_rm|netm_ls|netm_set|netm_rm"`
 	Uid     string `arg:"--uid" help:"user id"`
 	Nid     string `arg:"--nid" placeholder:"ID" help:"network id"`
@@ -29,12 +30,12 @@ type ZtCmd struct {
 	Timeout int    `arg:"--timeout" default:"10" help:"http timeout in seconds"`
 }
 
-type InfoCmd struct{}
+type infoCmd struct{}
 
 var args struct {
-	Do      *DoCmd   `arg:"subcommand:do" help:"digitalocean utils"`
-	Zt      *ZtCmd   `arg:"subcommand:zt" help:"zerotier utils"`
-	Info    *InfoCmd `arg:"subcommand:info" help:"show config info"`
+	Do      *doCmd   `arg:"subcommand:do" help:"digitalocean utils"`
+	Zt      *ztCmd   `arg:"subcommand:zt" help:"zerotier utils"`
+	Info    *infoCmd `arg:"subcommand:info" help:"dump config info"`
 	Noop    bool     `arg:"-n,--dry-run" help:"no action"`
 	Format  string   `arg:"-f,--fmt" default:"toml" help:"output format: yaml|toml|json"`
 	Verbose bool     `arg:"-v,--verbose" defalt:"false" help:"show verbose info"`
@@ -70,6 +71,9 @@ func sync_args_zt() bool {
 	}
 	if args.Zt.Ip != "" {
 		config.Zerotier.Netm.Config.IPAssignments = []string{args.Zt.Ip}
+	}
+	if args.Zt.Timeout > 0 {
+		config.Zerotier.Timeout = time.Duration(args.Zt.Timeout) * time.Second
 	}
 
 	switch args.Zt.Op {

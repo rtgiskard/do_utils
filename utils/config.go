@@ -52,7 +52,7 @@ func (c *Config) load(path string) {
 	}
 
 	// convert to seconds
-	c.Zerotier.Timeout *= 1e9
+	c.Zerotier.Timeout *= time.Second
 }
 
 func (c *Config) show(format string) {
