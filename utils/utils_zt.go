@@ -8,26 +8,48 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-var client = ZtClient{
-	Client:  &http.Client{Timeout: config.Zerotier.Timeout},
-	baseURL: config.Zerotier.URL}
+func read_resp_body(resp *http.Response) []byte {
+	if resp.StatusCode != 200 {
+		fmt.Println("status:", resp.Status)
+		return nil
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	return data
+}
 
 type ZtClient struct {
-	Client  *http.Client
+	client  *http.Client
+	timeout time.Duration
 	baseURL string
+	token   string
+	uid     string
+	fmt     string
+}
+
+func (c *ZtClient) Init() {
+	if c.fmt == "" {
+		c.fmt = "toml"
+	}
+
+	if c.timeout == 0 {
+		c.timeout = 20 * time.Second
+	}
+
+	c.client = &http.Client{Timeout: c.timeout}
+	c.baseURL = strings.TrimSuffix(c.baseURL, "/")
 }
 
 func (c *ZtClient) NewRequest(method, path string, body interface{}) (*http.Request, error) {
-	full_url := strings.TrimSuffix(config.Zerotier.URL, "/")
-	if strings.HasPrefix(path, "/") {
-		full_url += path
-	} else {
-		full_url += "/" + path
-	}
-
-	u, err := url.Parse(full_url)
+	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +61,6 @@ func (c *ZtClient) NewRequest(method, path string, body interface{}) (*http.Requ
 		if err != nil {
 			return nil, err
 		}
-
 	default:
 		buf := new(bytes.Buffer)
 		if body != nil {
@@ -55,70 +76,57 @@ func (c *ZtClient) NewRequest(method, path string, body interface{}) (*http.Requ
 		}
 	}
 
-	req.Header.Add("Authorization", "token "+config.Zerotier.Token)
+	// request with token
+	req.Header.Add("Authorization", "token "+c.token)
 
 	return req, nil
 }
 
-func (c *ZtClient) Request(method, path string, body interface{}) (*http.Response, error) {
+func (c *ZtClient) DoRequest(method, path string, body, data interface{}) (*http.Response, error) {
+	// request
 	req, err := c.NewRequest(method, path, body)
 	if err != nil {
+		fmt.Println("** Failed to construct request")
 		return nil, nil
 	}
 
-	return c.Client.Do(req)
-}
-
-func parse_response(resp *http.Response) []byte {
-	if resp.StatusCode != 200 {
-		fmt.Println("status:", resp.Status)
-		return nil
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	return data
-}
-
-func zt_req(method, path string, obj, body interface{}) {
-
-	resp, err := client.Request(method, path, body)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		fmt.Println("** error:", err)
-		return
+		return nil, nil
 	}
 
+	// handle
 	if method == http.MethodPost {
 		defer resp.Body.Close()
 	}
 
-	data := parse_response(resp)
-
-	err = json.Unmarshal(data, &obj)
-	if err != nil {
-		fmt.Println("** error:", err)
+	payload := read_resp_body(resp)
+	if data != nil {
+		err := json.Unmarshal(payload, &data)
+		if err != nil {
+			fmt.Println("** error:", err)
+		}
 	}
+
+	return resp, err
 }
 
-func zt_get_uid() string {
+func (c *ZtClient) GetUIDHack() string {
 	// get uid by create a tmp network
 	body := make(map[string]interface{})
-	obj := make(map[string]interface{})
-	zt_req(http.MethodPost, "/network", &obj, &body)
+	data := make(map[string]interface{})
+	c.DoRequest(http.MethodPost, "/network", &body, &data)
 
 	// once get resp, remove the network
-	if nid, ok := obj["id"]; ok {
+	if nid, ok := data["id"]; ok {
 		if v, ok := nid.(string); ok {
-			client.Request(http.MethodDelete, "/network/"+v, nil)
+			c.DoRequest(http.MethodDelete, "/network/"+v, nil, nil)
 		}
 	}
 
 	// parse and return uid
-	if uid, ok := obj["ownerId"]; ok {
+	if uid, ok := data["ownerId"]; ok {
 		if v, ok := uid.(string); ok {
 			return v
 		}
@@ -127,101 +135,89 @@ func zt_get_uid() string {
 	return ""
 }
 
-func zt_user_record() {
+func (c *ZtClient) DumpUserRecord() {
 	// get uid if not specified
-	uid := config.Zerotier.UID
-	if uid == "" {
-		uid = zt_get_uid()
+	if c.uid == "" {
+		c.uid = c.GetUIDHack()
+	}
+
+	if c.uid == "" {
+		fmt.Println("** Failed to get UID")
+		return
 	}
 
 	// get user record
-	obj := make(map[string]interface{})
-	zt_req(http.MethodGet, "/user/"+uid, &obj, nil)
+	data := make(map[string]interface{})
+	c.DoRequest(http.MethodGet, "/user/"+c.uid, nil, &data)
 
-	fmt.Println(dumps(obj, args.Format))
+	fmt.Println(dumps(data, c.fmt))
 }
 
-func zt_network_list() {
-	obj := make([]ZtNetInfo, 0)
-	zt_req(http.MethodGet, "/network", &obj, nil)
+func (c *ZtClient) ListNetwork() {
+	data := make([]ZtNetInfo, 0)
+	c.DoRequest(http.MethodGet, "/network", nil, &data)
 
-	display_networks(obj)
+	display_networks(data)
 }
 
-func zt_network_create() {
-	if args.Noop {
-		fmt.Printf(">> create args:\n%s\n", dumps(config.Zerotier.Net, args.Format))
-		return
-	}
-
+func (c *ZtClient) CreateNetwork(conf ZtNetPost) {
 	body := make(map[string]interface{})
-	obj := make(map[string]interface{})
-	zt_req(http.MethodPost, "/network", &obj, &body)
+	data := make(map[string]interface{})
+	c.DoRequest(http.MethodPost, "/network", &body, &data)
 
-	if nid, ok := obj["id"]; ok {
+	if nid, ok := data["id"]; ok {
 		if v, ok := nid.(string); ok {
-			zt_network_set(v)
+			c.SetNetwork(v, conf)
 		}
 	}
 }
 
-func zt_network_set(nid string) {
-	obj := ZtNetInfo{}
-	body := config.Zerotier.Net
-	zt_req(http.MethodPost, "/network/"+nid, &obj, &body)
+func (c *ZtClient) SetNetwork(nid string, conf ZtNetPost) {
+	data := ZtNetInfo{}
+	c.DoRequest(http.MethodPost, "/network/"+nid, &conf, &data)
 
-	fmt.Println(dumps(obj, args.Format))
+	fmt.Println(dumps(data, c.fmt))
 }
 
-func zt_network_del(nid string) {
-	resp, err := client.Request(http.MethodDelete, "/network/"+nid, nil)
-	if err != nil {
-		fmt.Println("** error:", err)
-		return
+func (c *ZtClient) DelNetwork(nid string) {
+	resp, err := c.DoRequest(http.MethodDelete, "/network/"+nid, nil, nil)
+	if err == nil && resp.StatusCode == 200 {
+		fmt.Println("status:", resp.Status)
 	}
-
-	fmt.Println("resp:", resp.Status)
 }
 
-func zt_network_member_list(nid string) {
+func (c *ZtClient) ListNetworkMember(nid string) {
 	if nid == "" {
-		obj := make([]ZtNetInfo, 0)
-		zt_req(http.MethodGet, "/network", &obj, nil)
+		data := make([]ZtNetInfo, 0)
+		c.DoRequest(http.MethodGet, "/network", nil, &data)
 
-		for i := range obj {
-			zt_network_member_list(obj[i].ID)
+		for i := range data {
+			c.ListNetworkMember(data[i].ID)
 		}
 	} else {
-		obj := make([]ZtNetMemberInfo, 0)
-		zt_req(http.MethodGet, "/network/"+nid+"/member", &obj, nil)
+		path := "/network/" + nid + "/member"
+		data := make([]ZtNetMemberInfo, 0)
+		c.DoRequest(http.MethodGet, path, nil, &data)
 
 		fmt.Printf("-- net: %s\n", nid)
-		display_network_members(obj)
+		display_network_members(data)
 		fmt.Println("")
 	}
 }
 
-func zt_network_member_set(nid string, mid string) {
-	if args.Noop {
-		fmt.Printf(">> set args:\n%s\n", dumps(config.Zerotier.Netm, args.Format))
-		return
-	}
-
+func (c *ZtClient) SetNetworkMember(nid string, mid string, conf ZtNetMemberPost) {
 	path := "/network/" + nid + "/member/" + mid
-	obj := ZtNetMemberInfo{}
-	body := config.Zerotier.Netm
-	zt_req(http.MethodPost, path, &obj, &body)
+	data := ZtNetMemberInfo{}
 
-	fmt.Println(dumps(obj, args.Format))
+	c.DoRequest(http.MethodPost, path, &conf, &data)
+
+	fmt.Println(dumps(data, c.fmt))
 }
 
-func zt_network_member_del(nid string, mid string) {
+func (c *ZtClient) DelNetworkMember(nid string, mid string) {
 	path := "/network/" + nid + "/member/" + mid
-	resp, err := client.Request(http.MethodDelete, path, nil)
-	if err != nil {
-		fmt.Println("** error:", err)
-		return
+	resp, err := c.DoRequest(http.MethodDelete, path, nil, nil)
+	if err == nil && resp.StatusCode == 200 {
+		fmt.Println("status:", resp.Status)
 	}
-
-	fmt.Println("resp:", resp.Status)
 }

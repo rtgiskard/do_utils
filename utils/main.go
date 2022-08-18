@@ -16,41 +16,70 @@ func main() {
 		config.show(args.Format)
 
 	case args.Zt != nil:
-		switch args.Zt.Op {
-		case "info":
-			zt_user_record()
-		case "net_ls":
-			zt_network_list()
-		case "net_add":
-			zt_network_create()
-		case "net_set":
-			zt_network_set(args.Zt.Nid)
-		case "net_rm":
-			zt_network_del(args.Zt.Nid)
-		case "netm_ls":
-			zt_network_member_list(args.Zt.Nid)
-		case "netm_set":
-			zt_network_member_set(args.Zt.Nid, args.Zt.Mid)
-		case "netm_rm":
-			zt_network_member_del(args.Zt.Nid, args.Zt.Mid)
-		default:
-			fmt.Println("** Undefined operation:", args.Zt.Op)
-		}
+		run_zerotier_cmd()
 
 	case args.Do != nil:
-		ctx, client := do_get_client(config.DigitalOcean.Token)
+		run_digitalocean_cmd()
+	}
+}
 
-		switch args.Do.Op {
-		case "ls":
-			do_droplet_ls(ctx, client)
-		case "add":
-			do_droplet_create(ctx, client)
-		case "rm":
-			do_droplet_rm(ctx, client)
-		case "reboot", "poweron", "poweroff", "powercycle":
-			do_droplet_action(ctx, client, args.Do.Op)
-		default:
-			fmt.Println("** Undefined operation:", args.Do.Op)
+func run_zerotier_cmd() {
+
+	client := ZtClient{
+		token:   config.Zerotier.Token,
+		baseURL: config.Zerotier.URL,
+		timeout: config.Zerotier.Timeout,
+		fmt:     args.Format,
+	}
+
+	client.Init()
+
+	if args.Noop {
+		switch args.Zt.Op {
+		case "net_add", "net_set":
+			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Net, args.Format))
+			return
+		case "netm_set":
+			fmt.Printf(">> post args:\n%s\n", dumps(config.Zerotier.Netm, args.Format))
+			return
 		}
+	}
+
+	switch args.Zt.Op {
+	case "info":
+		client.DumpUserRecord()
+	case "net_ls":
+		client.ListNetwork()
+	case "net_add":
+		client.CreateNetwork(config.Zerotier.Net)
+	case "net_set":
+		client.SetNetwork(args.Zt.Nid, config.Zerotier.Net)
+	case "net_rm":
+		client.DelNetwork(args.Zt.Nid)
+	case "netm_ls":
+		client.ListNetworkMember(args.Zt.Nid)
+	case "netm_set":
+		client.SetNetworkMember(args.Zt.Nid, args.Zt.Mid, config.Zerotier.Netm)
+	case "netm_rm":
+		client.DelNetworkMember(args.Zt.Nid, args.Zt.Mid)
+	default:
+		fmt.Println("** Undefined operation:", args.Zt.Op)
+	}
+}
+
+func run_digitalocean_cmd() {
+	ctx, client := do_get_client(config.DigitalOcean.Token)
+
+	switch args.Do.Op {
+	case "ls":
+		do_droplet_ls(ctx, client)
+	case "add":
+		do_droplet_create(ctx, client)
+	case "rm":
+		do_droplet_rm(ctx, client)
+	case "reboot", "poweron", "poweroff", "powercycle":
+		do_droplet_action(ctx, client, args.Do.Op)
+	default:
+		fmt.Println("** Undefined operation:", args.Do.Op)
 	}
 }
