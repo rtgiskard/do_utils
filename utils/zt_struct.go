@@ -121,12 +121,13 @@ type ZtNetMemberInfo struct {
 	} `json:"config,omitempty"`
 }
 
-func (i ZtNetInfo) showHeader() {
-	fmt.Printf("%-18s %-16s %-18s %-10s %-10s %s\n",
-		"NID", "Name", "Route", "Private", "O/T/A", "CreationTime")
+// DumpHeader returns header info for data from DumpInfo()
+func (i ZtNetInfo) DumpHeader() []interface{} {
+	return []interface{}{"NID", "Name", "Route", "Private", "O/T/A", "CreationTime"}
 }
 
-func (i *ZtNetInfo) show() {
+// DumpInfo returns a slice of predefined infomation
+func (i *ZtNetInfo) DumpInfo() []interface{} {
 	createTime := time.Unix(i.Config.CreationTime/1000, 0).Local().Format(time.RFC3339)
 	ota := fmt.Sprintf("%d/%d/%d", i.OnlineMemberCount, i.TotalMemberCount, i.AuthorizedMemberCount)
 
@@ -135,16 +136,16 @@ func (i *ZtNetInfo) show() {
 		route = i.Config.Routes[0].Target
 	}
 
-	fmt.Printf("%-18s %-16s %-18s %-10t %-10s %s\n",
-		i.ID, i.Config.Name, route, i.Config.Private, ota, createTime)
+	return []interface{}{i.ID, i.Config.Name, route, i.Config.Private, ota, createTime}
 }
 
-func (i ZtNetMemberInfo) showHeader() {
-	fmt.Printf("%-12s %-14s %-18s %-18s %-10s %-12s %-7s %s\n",
-		"MID", "Name", "IP_assign", "IP_physical", "Version", "LastOnline", "Auth", "Hidden")
+// DumpHeader returns header info for data from DumpInfo()
+func (i ZtNetMemberInfo) DumpHeader() []interface{} {
+	return []interface{}{"MID", "Name", "IP_assign", "IP_physical", "Version", "LastOnline", "Auth", "Hidden"}
 }
 
-func (i *ZtNetMemberInfo) show() {
+// DumpInfo returns a slice of predefined infomation
+func (i *ZtNetMemberInfo) DumpInfo() []interface{} {
 	lastOnline := time.Unix(i.LastOnline/1000, 0)
 	lastduration := time.Since(lastOnline).Truncate(time.Second)
 
@@ -153,9 +154,8 @@ func (i *ZtNetMemberInfo) show() {
 		ipAssigned = i.Config.IPAssignments[0]
 	}
 
-	fmt.Printf("%-12s %-14s %-18s %-18s %-10s %-12s %-7t %t\n",
-		i.NodeID, i.Name, ipAssigned, i.PhysicalAddress,
-		i.ClientVersion, lastduration, i.Config.Authorized, i.Hidden)
+	return []interface{}{i.NodeID, i.Name, ipAssigned, i.PhysicalAddress,
+		i.ClientVersion, lastduration, i.Config.Authorized, i.Hidden}
 }
 
 func displayNetworks(networks []ZtNetInfo) {
@@ -170,13 +170,13 @@ func displayNetworks(networks []ZtNetInfo) {
 			fmt.Println(Dumps(v, args.Format))
 		}
 	} else {
-		// show header
-		ZtNetInfo{}.showHeader()
+		info := [][]interface{}{ZtNetInfo{}.DumpHeader()}
 
-		// show brief info
 		for i := range networks {
-			networks[i].show()
+			info = append(info, networks[i].DumpInfo())
 		}
+
+		ShowTable(info)
 	}
 }
 
@@ -192,13 +192,14 @@ func displayNetworkMembers(members []ZtNetMemberInfo) {
 			fmt.Println(Dumps(v, args.Format))
 		}
 	} else {
-		// show header
-		ZtNetMemberInfo{}.showHeader()
+		info := [][]interface{}{ZtNetMemberInfo{}.DumpHeader()}
 
 		// show brief info
 		for i := range members {
-			members[i].show()
+			info = append(info, members[i].DumpInfo())
 		}
+
+		ShowTable(info)
 	}
 }
 

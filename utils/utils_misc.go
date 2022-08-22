@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -8,7 +9,8 @@ import (
 
 	"encoding/json"
 
-	"github.com/pelletier/go-toml"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -121,4 +123,22 @@ func Dumps(o interface{}, format string) string {
 	}
 
 	return string(b)
+}
+
+// ShowTable print table with preset simple style
+func ShowTable(t [][]interface{}) {
+	tt := table.NewWriter()
+
+	tt.SetAutoIndex(false)
+	tt.Style().Options.DrawBorder = false
+	tt.Style().Options.SeparateColumns = false
+	tt.Style().Options.SeparateFooter = false
+	tt.Style().Options.SeparateHeader = false
+	tt.Style().Options.SeparateRows = false
+
+	for i := range t {
+		tt.AppendRow(t[i])
+	}
+
+	fmt.Println(tt.Render())
 }

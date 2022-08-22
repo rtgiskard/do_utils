@@ -81,6 +81,15 @@ func TestReprBitsLen(t *testing.T) {
 	}
 }
 
+func TestShowTable(t *testing.T) {
+	data := [][]interface{}{
+		{"Name", "Ip4", "Ip6", "Status", "Desc"},
+		{"abc", "10.10.10.1/24", "fd00::1/64", "online"},
+		{"AOE", "192.168.1.254/24", "fe80::1709:dddb:b954:38c4/64 ", "online", "who knows"},
+	}
+	ShowTable(data)
+}
+
 func BenchmarkReprBitsLen(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ReprBitsLen(uint64(123456))

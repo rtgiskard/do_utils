@@ -1,3 +1,7 @@
+/*
+This is a set of tools for several platforms, which makes it possible to
+perform some basic operations without logging into each platform with a browser
+*/
 package main
 
 import (

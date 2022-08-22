@@ -114,26 +114,26 @@ func (c *DoClient) GetDropletID(name string) int {
 func (c *DoClient) ListDroplet() {
 	droplets, _, _ := c.client.Droplets.List(c.ctx, &c.args.ListOption)
 
-	fmt.Println("-> list droplet:")
+	if len(droplets) == 0 {
+		fmt.Println("<empty>")
+		return
+	}
+
+	info := [][]interface{}{
+		{"Name", "Ipv4", "Ipv6", "Region", "Size", "Status", "Created"},
+	}
+
 	for _, droplet := range droplets {
 
-		ipv4 := ""
-		ipv6 := ""
+		ipv4, _ := droplet.PublicIPv4()
+		ipv6, _ := droplet.PublicIPv6()
 
-		for _, net := range droplet.Networks.V4 {
-			if net.Type == "public" {
-				ipv4 = net.IPAddress
-			}
-		}
-		for _, net := range droplet.Networks.V6 {
-			if net.Type == "public" {
-				ipv6 = net.IPAddress
-			}
-		}
-
-		fmt.Printf("%s: %s %s (%s, %s, %s)\n", droplet.Name, ipv4, ipv6,
-			droplet.Region.Slug, droplet.SizeSlug, droplet.Status)
+		info = append(info, []interface{}{
+			droplet.Name, ipv4, ipv6, droplet.Region.Slug, droplet.SizeSlug,
+			droplet.Status, droplet.Created})
 	}
+
+	ShowTable(info)
 }
 
 // CreateDroplet create new droplet and apply the settings
@@ -210,6 +210,10 @@ func (c *DoClient) CreateDroplet(noop bool) {
 
 // DestroyDroplet destroy droplet by the pre set tag which equals the name
 func (c *DoClient) DestroyDroplet(name string) {
-	fmt.Println("-> delete droplet:", name)
-	c.client.Droplets.DeleteByTag(c.ctx, name)
+	resp, _ := c.client.Droplets.DeleteByTag(c.ctx, name)
+	if resp.StatusCode == 204 {
+		fmt.Println("droplet removed:", name)
+	} else {
+		fmt.Println("Status:", resp.Status)
+	}
 }

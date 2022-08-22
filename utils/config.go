@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 type cZT struct {
