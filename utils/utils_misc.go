@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -82,6 +83,13 @@ func GenRandStr[T string | int](n int, s T) string {
 		sb.WriteByte(ss[rand.Intn(len(ss))])
 	}
 	return sb.String()
+}
+
+// IsFileExist returns whether file exist
+func IsFileExist(path string) bool {
+	_, err := os.Stat(path)
+
+	return !errors.Is(err, os.ErrNotExist)
 }
 
 // ReadFile reads up to n bytes from given path

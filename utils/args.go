@@ -12,7 +12,7 @@ type doCmd struct {
 	Name     string `arg:"--name" help:"name of the droplet to operate"`
 	Size     string `arg:"--size" help:"size of the new droplet"`
 	Userdata string `arg:"--userdata" default:"none" help:"source of userdata: [none|gen|$file]"`
-	Helper   string `arg:"--helper" default:"../tool/01_gen_userdata.sh" help:"helper to generate userdata"`
+	Helper   string `arg:"--helper" default:"tool/01_gen_userdata.sh" help:"helper to generate userdata"`
 	Token    string `arg:"--token" help:"set the api token"`
 }
 
