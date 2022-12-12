@@ -204,7 +204,11 @@ func (c *DoClient) CreateDroplet(noop bool) {
 	fmt.Printf("-> create droplet:\n--\n%s\n", Dumps(createRequest, "toml"))
 
 	if !noop {
-		c.client.Droplets.Create(c.ctx, createRequest)
+		_, _, err := c.client.Droplets.Create(c.ctx, createRequest)
+
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
 	}
 }
 
