@@ -1,0 +1,7 @@
+- digitalocean
+. https://slugs.do-api.dev/
+. https://docs.digitalocean.com/reference/api/api-reference/
+
+- zerotier
+. https://my.zerotier.com/central-api.html
+. https://docs.zerotier.com/central/v1/
