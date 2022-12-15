@@ -1,12 +1,15 @@
 #!/bin/bash
 
-# this is just an example, it generate userdata string as output
+# It generate userdata string (script content) as output, digitalocean will
+# initialize droplet on the first boot with it.
+#
+# this is just an example
 #
 # note:
-# 1. size of output should be within 64K according the api doc
+# 1. size of output should be within 64K according to the api doc
 # 2. the script seems to be executed on the next boot after the creation
 
-# ex1: just script:
+# ex1: just a script:
 cat - <<EOF
 #!/bin/bash
 
@@ -15,7 +18,7 @@ EOF
 
 exit 0
 
-# ex2: embed a tar file into userdata
+# ex2: a template script and embed a tar file
 sh_tar="file.tar.xz"
 
 cat - <<EEOF
@@ -23,7 +26,7 @@ cat - <<EEOF
 
 load_payload() {
 	cat - <<EOF
-$(cat $sh_tar | base64)
+$(base64 "$sh_tar")
 EOF
 }
 
