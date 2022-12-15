@@ -14,18 +14,18 @@ import (
 var args = mainArgs{}
 var config = mainConfig{}
 
-func load_config(path string) bool {
+func loadConfig(path string) bool {
 	if IsFileExist(path) {
 		config.load(path)
 		return true
-	} else {
-		conf_list := []string{"config.toml", "conf/config.toml"}
-		for _, cpath := range conf_list {
-			if cpath != path && IsFileExist(cpath) {
-				// log.Printf("using fallback config: %s", cpath)
-				config.load(cpath)
-				return true
-			}
+	}
+
+	confList := []string{"config.toml", "conf/config.toml"}
+	for _, cpath := range confList {
+		if cpath != path && IsFileExist(cpath) {
+			// log.Printf("using fallback config: %s", cpath)
+			config.load(cpath)
+			return true
 		}
 	}
 
@@ -35,7 +35,7 @@ func load_config(path string) bool {
 func main() {
 	p := arg.MustParse(&args)
 
-	if !load_config(args.ConfigFile) {
+	if !loadConfig(args.ConfigFile) {
 		log.Fatal("failed to load config file, abort!")
 	}
 
