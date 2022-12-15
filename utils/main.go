@@ -22,7 +22,7 @@ func load_config(path string) bool {
 		conf_list := []string{"config.toml", "conf/config.toml"}
 		for _, cpath := range conf_list {
 			if cpath != path && IsFileExist(cpath) {
-				log.Printf("using fallback config: %s", cpath)
+				// log.Printf("using fallback config: %s", cpath)
 				config.load(cpath)
 				return true
 			}

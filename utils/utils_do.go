@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/digitalocean/godo"
 )
@@ -64,7 +65,10 @@ func (c *DoClient) GetDropletImage(distro string) string {
 	slugs := make([]string, 0, 2)
 
 	for _, image := range images {
-		if image.Distribution == distro {
+		if image.Slug == distro {
+			return distro
+		}
+		if strings.ToLower(image.Distribution) == strings.ToLower(distro) {
 			slugs = append(slugs, image.Slug)
 		}
 	}
